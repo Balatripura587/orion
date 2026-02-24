@@ -558,6 +558,49 @@ setup() {
 
   set -e
 }
+@test "orion --anomaly-detection with regression should contain inline changepoint" {
+  set +e
+  orion --lookback 15d --since 2026-01-20 --anomaly-detection --config hack/ci-tests/ci-tests.yaml --metadata-index "orion-integration-test-data*" --benchmark-index "orion-integration-test-metrics*" --es-server=${QE_ES_SERVER} --node-count true --input-vars='{"version": "4.20"}' > ./outputs/results-anomaly.txt
+  EXIT_CODE=$?
+
+  if [ ! $EXIT_CODE -eq 2 ]; then
+    echo "no regression found"
+    exit 1
+  fi
+
+  # Check if the percentage #1 string exists in the output file
+  if ! grep -q "+155.6%" ./outputs/results-anomaly.txt; then
+    echo "Expected string '+155.6%' not found in results.txt"
+    exit 1
+  fi
+
+  # Check if the percentage #2 string exists in the output file
+  if ! grep -q "+56.7%" ./outputs/results-anomaly.txt; then
+    echo "Expected string '+56.7%' not found in results.txt"
+    exit 1
+  fi
+
+  # Check if the percentage #3 string exists in the output file
+  if ! grep -q "+38.9%" ./outputs/results-anomaly.txt; then
+    echo "Expected string '+38.9%' not found in results.txt"
+    exit 1
+  fi
+
+  # Check if the Bad Version string exists in the output file
+  if ! grep -q "Bad Version:         4.20.0-0.nightly-2026-01-15-195655" ./outputs/results-anomaly.txt; then
+    echo "Expected string 'Bad Version:         4.20.0-0.nightly-2026-01-15-195655' not found in results.txt"
+    exit 1
+  fi
+
+  # Check if the Bad Version string exists in the output file
+  if ! grep -q "Bad Version:         4.20.0-0.nightly-2026-01-17-195655" ./outputs/results-anomaly.txt; then
+    echo "Expected string 'Bad Version:         4.20.0-0.nightly-2026-01-17-195655' not found in results.txt"
+    exit 1
+  fi
+
+  set -e
+}
+
 
 @test "orion --anomaly-detection with regression should contain inline changepoint json" {
   set +e
