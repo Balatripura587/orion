@@ -6,6 +6,7 @@ Module file for config reading and loading
 import sys
 import os
 from typing import Any, Dict, List
+from collections import Counter
 import jinja2
 import yaml
 from orion.logger import SingletonLogger
@@ -39,15 +40,16 @@ def load_config(config_path: str, input_vars: Dict[str, Any]) -> Dict[str, Any]:
             logger
         )
 
-    metrics = {}
+    parent_metrics = {}
     if "metricsFile" in rendered_config:
-        metrics = load_config_file(
+        parent_metrics = load_config_file(
             rendered_config["metricsFile"],
             config_dir,
             env_vars,
             logger
         )
 
+    metrics = []
     for test in rendered_config["tests"]:
         skip_global_config = False
         skip_global_metrics = False
@@ -69,9 +71,22 @@ def load_config(config_path: str, input_vars: Dict[str, Any]) -> Dict[str, Any]:
             test["metrics"] = merge_lists(test["metrics"], local_metrics)
         if parent_config and not skip_global_config:
             test["metadata"] = merge_configs(test["metadata"], parent_config["metadata"])
-        if metrics and not skip_global_metrics:
-            test["metrics"] = merge_lists(test["metrics"], metrics)
+        if parent_metrics and not skip_global_metrics:
+            test["metrics"] = merge_lists(test["metrics"], parent_metrics)
 
+        for metric in test["metrics"]:
+            metric_name = test["name"] + ":" + metric["name"]
+            if "agg" in metric:
+                metric_name = f"{metric_name}:{metric['agg']['agg_type']}"
+            elif "metric_of_interest" in metric:
+                metric_name = f"{metric_name}:{metric['metric_of_interest']}"
+            metrics.append(metric_name)
+        metric_counts = Counter(metrics)
+        duplicated_metrics = [name for name, count in metric_counts.items() if count > 1]
+        if duplicated_metrics:
+            logger.error("Duplicate metric names in config for test %s, \
+please fix metric to avoid unexpected behavior: %s", test["name"], [x.split(":")[1] for x in duplicated_metrics])
+            sys.exit(1)
     return rendered_config
 
 
@@ -298,9 +313,13 @@ def merge_lists(metrics: List[Any], inherited_metrics: List[Any]) -> List[Any]:
     for m in inherited_metrics:
         found = False
         for metric in metrics:
-            if metric["name"] == m["name"] and metric["metricName"] == m["metricName"]:
-                logger.info("Use metric in lower level config file %s - %s", m["name"], m["metricName"])
-                found = True
+            if metric["name"] == m["name"]:
+                if "metricName" in metric and "metricName" in m and metric["metricName"] == m["metricName"]:
+                    logger.info("Use metric in lower level config file %s - %s", m["name"], m["metricName"])
+                    found = True
+                if "metricName.keyword" in metric and "metricName.keyword" in m and metric["metricName.keyword"] == m["metricName.keyword"]:
+                    logger.info("Use metric in lower level config file %s - %s", m["name"], m["metricName.keyword"])
+                    found = True
         if not found:
             merged.append(m)
     merged.extend(metrics)
