@@ -266,13 +266,13 @@ setup() {
   VERSION=$before_version
 }
 
-@test "orion with --no-ack disables ACK loading" {
+@test "orion with --no-default-ack disables default ACK loading" {
   set +e
-  orion --lookback 15d --since 2026-01-20 --hunter-analyze --config hack/ci-tests/ci-tests.yaml --metadata-index "orion-integration-test-data*" --benchmark-index "orion-integration-test-metrics*" --es-server=${QE_ES_SERVER} --node-count true --input-vars='{"version": "4.20"}' --no-ack 2>&1 | tee ./outputs/results-no-ack.txt
+  orion --lookback 15d --since 2026-01-20 --hunter-analyze --config hack/ci-tests/ci-tests.yaml --metadata-index "orion-integration-test-data*" --benchmark-index "orion-integration-test-metrics*" --es-server=${QE_ES_SERVER} --node-count true --input-vars='{"version": "4.20"}' --no-default-ack 2>&1 | tee ./outputs/results-no-default-ack.txt
   EXIT_CODE=$?
   set -e
-  if ! grep -q "ACK loading disabled" ./outputs/results-no-ack.txt; then
-    echo "Expected 'ACK loading disabled' in output when using --no-ack"
+  if ! grep -q "default ACK loading disabled" ./outputs/results-no-default-ack.txt; then
+    echo "Expected 'default ACK loading disabled' in output when using --no-default-ack"
     exit 1
   fi
 }

@@ -99,7 +99,7 @@ def validate_anomaly_options(ctx, param, value: Any) -> Any: # pylint: disable =
 @click.option("--filter", is_flag=True, help="Generate percent difference in comparison")
 @click.option("--config", help="Path to the configuration file", required=True)
 @click.option("--ack", default="", help="Optional ack YAML to ack known regressions (can specify multiple files separated by comma)")
-@click.option("--no-ack", is_flag=True, default=False, help="Disable automatic ACK file detection and loading (manual --ack files are still loaded)")
+@click.option("--no-default-ack", is_flag=True, default=False, help="Disable automatic default ACK file detection and loading (manual --ack files are still loaded)")
 @click.option(
     "--save-data-path", default="data.csv", help="Path to save the output file"
 )
@@ -165,12 +165,12 @@ def main(**kwargs):
     kwargs["config"] = load_config(kwargs["config"], kwargs["input_vars"])
 
     # Handle ACK file loading
-    # Logic: Auto-load ack/all_ack.yaml unless --no-ack. Manual --ack files are always loaded and merged.
+    # Logic: Auto-load ack/all_ack.yaml unless --no-default-ack. Manual --ack files are always loaded and merged.
     ack_maps = []
 
-    # Step 1: Auto-detect and load consolidated ACK file (skipped when --no-ack)
-    if kwargs["no_ack"]:
-        logger.info("Automatic ACK loading disabled (--no-ack flag)")
+    # Step 1: Auto-detect and load consolidated ACK file (skipped when --no-default-ack)
+    if kwargs["no_default_ack"]:
+        logger.info("Automatic default ACK loading disabled (--no-default-ack flag)")
     else:
         auto_ack_file = auto_detect_ack_file_with_vars(
             kwargs["config"],
@@ -218,7 +218,7 @@ def main(**kwargs):
                 logger.info("✓ Loaded ACK file: %s (version=%s, test_type=%s, no matching entries found)",
                            auto_ack_file, version or "all", test_type or "all")
 
-    # Load manually specified ACK files (if any) — always runs even with --no-ack
+    # Load manually specified ACK files (if any) — always runs even with --no-default-ack
     if kwargs["ack"]:
         # Support multiple ACK files separated by comma
         ack_files = [f.strip() for f in kwargs["ack"].split(",") if f.strip()]
