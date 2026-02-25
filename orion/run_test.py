@@ -285,7 +285,7 @@ def analyze(test, kwargs, is_pull = False) -> Tuple[Dict[str, Any], bool, Any, A
         result_data_json = json.loads(result_data)
         current_points = len(fingerprint_matched_df)
 
-        changepoint_buffer = kwargs.get("changepoint_buffer", 5)
+        changepoint_buffer = cnsts.CHANGEPOINT_BUFFER
         if changepoint_buffer > 0 and has_early_changepoint(
                 result_data_json, max_early_index=changepoint_buffer
         ):
@@ -297,14 +297,12 @@ def analyze(test, kwargs, is_pull = False) -> Tuple[Dict[str, Any], bool, Any, A
             )
             expanded_kwargs = copy.deepcopy(kwargs)
             original_lookback = kwargs.get("lookback", "")
-            expand_days = kwargs.get("expand_days", 10)
-            expand_points = kwargs.get("expand_points", 5)
             expanded_lookback = increase_lookback(
-                original_lookback, days_to_add=expand_days
+                original_lookback, days_to_add=cnsts.EXPAND_DAYS
             )
             expanded_kwargs["lookback"] = expanded_lookback
 
-            required_lookback_size = current_points + expand_points
+            required_lookback_size = current_points + cnsts.EXPAND_POINTS
             expanded_kwargs["lookback_size"] = required_lookback_size
             logger.info(
                 "Window expansion: lookback %s -> %s, lookback_size -> %d",
