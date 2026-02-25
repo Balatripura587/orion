@@ -247,14 +247,14 @@ setup() {
 @test "orion node scenarios " {
   before_version=$version
   VERSION=$chaos_version
-  scenario_type="node_scenarios" cloud_infrastructure="AWS" cloud_type="self-managed" total_node_count="9" node_instance_type="*xlarge*" network_plugins="OVNKubernetes" scenario_file="*node_scenario.yaml" run_cmd orion --config "examples/node_scenarios.yaml" --lookback 45d --es-server=${ES_SERVER} --metadata-index=${KRKEN_METADATA_INDEX} --benchmark-index=${KRKN_BENCHMARK_INDEX}
+  label_selector="node-role.kubernetes.io/control-plane=" scenario_type="node_scenarios" cloud_infrastructure="AWS" cloud_type="self-managed" total_node_count="9" node_instance_type="*xlarge*" network_plugins="OVNKubernetes" scenario_file="*node_scenario.yaml" run_cmd orion --config "examples/node_scenarios.yaml" --lookback 45d --es-server=${ES_SERVER} --metadata-index=${KRKEN_METADATA_INDEX} --benchmark-index=${KRKN_BENCHMARK_INDEX}
   VERSION=$before_version
 }
 
 @test "orion pod disruption scenarios " {
   before_version=$version
   VERSION=$chaos_version
-  pod_namespace="openshift-etcd" scenario_type="pod_disruption_scenarios" cloud_infrastructure="AWS" cloud_type="self-managed" total_node_count="9" node_instance_type="*xlarge*" network_plugins="OVNKubernetes" scenario_file="*pod_scenario.yaml" run_cmd orion --config "examples/pod_disruption_scenarios.yaml" --lookback 45d --es-server=${ES_SERVER} --metadata-index=${KRKEN_METADATA_INDEX} --benchmark-index=${KRKN_BENCHMARK_INDEX} --hunter-analyze
+  pod_namespace="openshift-etcd" label_selector="k8s-app=etcd" scenario_type="pod_disruption_scenarios" cloud_infrastructure="AWS" cloud_type="self-managed" total_node_count="9" node_instance_type="*xlarge*" network_plugins="OVNKubernetes" scenario_file="*pod_scenario.yaml" run_cmd orion --config "examples/pod_disruption_scenarios.yaml" --lookback 45d --es-server=${ES_SERVER} --metadata-index=${KRKEN_METADATA_INDEX} --benchmark-index=${KRKN_BENCHMARK_INDEX} --hunter-analyze
   VERSION=$before_version
 }
 
@@ -264,6 +264,31 @@ setup() {
   export ols_test_workers=10
   es_metadata_index="perf_scale_ci*" es_benchmark_index="ols-load-test-results*" run_cmd orion --config "examples/ols-load-generator.yaml" --hunter-analyze --ack /tmp/4.16_ols-load-generator-10w_ack.yaml --es-server=${ES_SERVER}
   VERSION=$before_version
+}
+
+@test "orion with --no-default-ack disables default ACK loading" {
+  set +e
+  orion --lookback 15d --since 2026-01-20 --hunter-analyze --config hack/ci-tests/ci-tests.yaml --metadata-index "orion-integration-test-data*" --benchmark-index "orion-integration-test-metrics*" --es-server=${QE_ES_SERVER} --node-count true --input-vars='{"version": "4.20"}' --no-default-ack 2>&1 | tee ./outputs/results-no-default-ack.txt
+  EXIT_CODE=$?
+  set -e
+  if ! grep -q "default ACK loading disabled" ./outputs/results-no-default-ack.txt; then
+    echo "Expected 'default ACK loading disabled' in output when using --no-default-ack"
+    exit 1
+  fi
+}
+
+@test "orion auto-loads ack/all_ack.yaml when present" {
+  set +e
+  orion --lookback 15d --since 2026-01-20 --hunter-analyze --config hack/ci-tests/ci-tests.yaml --metadata-index "orion-integration-test-data*" --benchmark-index "orion-integration-test-metrics*" --es-server=${QE_ES_SERVER} --node-count true --input-vars='{"version": "4.20"}' 2>&1 | tee ./outputs/results-ack-auto.txt
+  EXIT_CODE=$?
+  set -e
+  if [ ! -f ack/all_ack.yaml ]; then
+    skip "ack/all_ack.yaml not present, skipping auto-load test"
+  fi
+  if ! grep -q "all_ack.yaml" ./outputs/results-ack-auto.txt; then
+    echo "Expected orion to mention all_ack.yaml when auto-loading ACK"
+    exit 1
+  fi
 }
 
 @test "orion with quay config " {
