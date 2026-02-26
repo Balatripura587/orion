@@ -314,6 +314,8 @@ def analyze(test, kwargs, is_pull = False) -> Tuple[Dict[str, Any], bool, Any, A
             expanded_start_timestamp = get_start_timestamp(
                 expanded_kwargs, test, is_pull
             )
+            # Reset matcher to metadata index for executing expanded window analysis.
+            matcher.index = expanded_kwargs.get("metadata_index") or test.get("metadata_index")
             expanded_fingerprint_matched_df, _ = utils.process_test(
                 test,
                 matcher,
