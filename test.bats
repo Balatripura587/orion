@@ -558,7 +558,7 @@ setup() {
   set -e
 }
 
-@test "orion early-changepoint metric: changepoint in first 5 is skipped when expansion finds no extra data" {
+@test "orion early-changepoint metric - changepoint in first 5 is skipped when expansion finds no extra data" {
   # Early-cp metric has changepoint at 5th point. Orion expands the window to re-validate;
   # with only 10 runs there is no additional data, so it skips the early changepoint and does not report regression.
   set +e
