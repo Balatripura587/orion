@@ -414,6 +414,12 @@ def test_filter_runs(matcher_instance, monkeypatch):
     assert result == expected
 
 
+def test_filter_runs_empty_historical_data(matcher_instance):
+    data = [{"uuid": "uuid1", "jobConfig": {"jobIterations": 1}}]
+    result = matcher_instance.filter_runs([], data)
+    assert result == []
+
+
 @pytest.mark.parametrize(
     "fixture_name,test_uuid,test_uuids,test_metrics,fake_hits,expected",
     [
