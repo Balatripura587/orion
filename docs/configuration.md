@@ -290,6 +290,25 @@ Example:
 threshold: 10  # Only detect changes > 10%
 ```
 
+### Acceptable Range
+An `acceptable_range` can be used when a metric should only trigger when the
+actual value at a detected changepoint is outside a permitted value range.
+The bounds are inclusive, and configuring a range takes precedence over
+`threshold` and `direction` for that metric.
+
+```yaml
+- name: nodeMajorFaults
+  metricName: nodeMajorFaults
+  metric_of_interest: value
+  agg:
+    agg_type: avg
+  acceptable_range: [0, 10]
+```
+
+The range can also be written as `acceptable_range: {min: 0, max: 10}`.
+The value at the changepoint index is checked directly; the before/after
+segment means are not used for range filtering.
+
 ### Correlation
 A filter that skips changepoint detection if a dependent metric has no changepoint:
 

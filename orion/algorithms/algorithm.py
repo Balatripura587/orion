@@ -69,3 +69,21 @@ class Algorithm(ABC): # pylint: disable = too-many-arguments, too-many-instance-
         )
 
         return series
+
+    def _has_acceptable_range(self, metric):
+        """Return whether a metric uses an acceptable value range."""
+        return self.metrics_config[metric].get("acceptable_range") is not None
+
+    def _steps_outside_acceptable_range(self, metric, change_point):
+        """Return whether the actual value at a changepoint is outside its range."""
+        acceptable_range = self.metrics_config[metric].get("acceptable_range")
+        if acceptable_range is None:
+            return False
+
+        minimum, maximum = acceptable_range
+        index = change_point.index
+        if not 0 <= index < len(self.dataframe):
+            return False
+
+        value = self.dataframe.iloc[index][metric]
+        return value < minimum or value > maximum
